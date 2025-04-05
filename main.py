@@ -1,20 +1,21 @@
 import yfinance as yf
-ticker_list = ['AAPL', 'NKE', 'EDP.LS']
-Dgrowthratelist = [0.08, 0.07, 0.008]
-Requiredreturnlist = [0.1, 0.1, 0.1]
-DDMappropriate = [False, False, True]
-Grahamappropriate = [True, False, True]
+import pandas_datareader.data as web
+import datetime
+ticker_list = ['PG']
+Dgrowthratelist = [0.12]
+Requiredreturnlist = [0.13]
+DDMappropriate = [True]
+Grahamappropriate = [True]
 
-GrowthRate = [17, 5, 0] #graham formula uses % not decimal
+GrowthRate = [3]#graham formula uses % not decimal
 
 i = 0
 
-lqd = yf.Ticker('LQD')
-lqd_history = lqd.history(period="1d")
-AAAbondyield= lqd.info['dividendYield']
+start = datetime.datetime.today() - datetime.timedelta(days=10)
+end = datetime.datetime.today()
 
-#Using lqd as AAA corporate bonds is inneficient
-
+aaa_yield = web.DataReader('DAAA', 'fred', start, end)
+AAAbondyield = aaa_yield.dropna().iloc[-1, 0]
 
 def Dividend_growth_rate_calc(DperShare, i):
     while i< (len(Dgrowthratelist)):

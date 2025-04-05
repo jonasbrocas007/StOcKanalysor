@@ -1,2 +1,2 @@
 # StOcKanalysor
-Do not use this for personal use of your finances!
+Do not use this for personal finances! (god forbid professional)

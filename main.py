@@ -3,13 +3,13 @@ import pandas_datareader.data as web
 import datetime
 import pandas as pd
 import math
-ticker_list = ['BRK-B']
-Dgrowthratelist = [0.02]
+ticker_list = ['PG']
+Dgrowthratelist = [0.07]
 Requiredreturnlist = [0.1]
 DDMappropriate = [True]
 Grahamappropriate = [True]
 
-GrowthRate = [5]#graham formula uses % not decimal
+GrowthRate = [2]#graham formula uses % not decimal
 
 i = 0
 
@@ -44,61 +44,81 @@ def Grahamformula(EPS, growth, AAAbondyield, i):
 # WHAT TO DO::: MAKE EPS INFO AND DIVINFO COUNT YEAR ON YEAR CHANGES NOT TOTAL CHANGES!
 def EPSinfo(company):
     annual = company.income_stmt
+    HEPS = annual.loc['Basic EPS'].dropna()
 
-    HEPS = annual.loc['Basic EPS']
+    HEPS.index = HEPS.index.astype(str).str[:4].astype(int)
 
-    last_value = HEPS.iloc[-1]
+    HEPS = HEPS.sort_index()
 
-    percentage_changes = {}
+    HEPS = HEPS[HEPS.index >= 2020]
 
-    if pd.isnull(HEPS).values.any():
-        last_value = HEPS.iloc[-2]
+    if len(HEPS) < 2:
+        print("Not enough EPS data to calculate growth from 2021 onwards.")
+        return
 
-    print("Presenting usefull information for graham formula (Basic EPS growth since 2020) \n")
+    print("Presenting useful information for Graham formula (Basic EPS growth since 2021) \n")
+    for i in range(1, len(HEPS)):
+        year = HEPS.index[i]
+        prev_year = HEPS.index[i - 1]
 
-    for date, value in HEPS.items():
-        if pd.notna(value): 
-            pct_change = ((value - last_value) / last_value) * 100
-            percentage_changes[date] = pct_change
+        if prev_year >= 2020:
+            current = HEPS.loc[year]
+            previous = HEPS.loc[prev_year]
 
-    for date, pct_change in percentage_changes.items():
-        print(f"Percentage change for {date}: {pct_change:.2f}%")
-    
+            if previous != 0:
+                pct_change = ((current - previous) / abs(previous)) * 100
+            else:
+                pct_change = float('inf')
+
+        print(f"Percentage change for {year}: {pct_change:.2f}%")
+
     print("\n")
 
 def DIVinfo(company):
-    annual = company
+    HDIV = company.dividends.dropna()
 
-    HDIV= annual.dividends
-    HDIV = HDIV[::-1]
-    print(HDIV)
-    last_value = HDIV.iloc[-1]
+    HDIV.index = pd.to_datetime(HDIV.index)
 
-    percentage_changes = {}
+    current_year = pd.Timestamp.today().year
+    HDIV = HDIV[HDIV.index.year < current_year]
 
-    #if pd.isnull(HDIV).values.any():
-        #last_value = HDIV.iloc[-2]
+    annual_dividends = HDIV.groupby(HDIV.index.year).sum()
 
-    print("Presenting usefull information for DDM model formula (Dividend history) \n")
+    annual_dividends = annual_dividends.sort_index()
 
-    for date, value in HDIV.items():
-        if pd.notna(value): 
-            pct_change = ((value - last_value) / last_value) * 100
-            percentage_changes[date] = pct_change
+    if len(annual_dividends) < 2:
+        print("Not enough data to calculate year-over-year dividend growth.")
+        return
 
-    for date, pct_change in percentage_changes.items():
-        print(f"Percentage change for {date}: {pct_change:.2f}%")
-    
-    print("\n") 
+    print("Presenting useful information for DDM model formula (Dividend history)\n")
 
+    for i in range(1, len(annual_dividends)):
+        year = annual_dividends.index[i]
+        prev_year = annual_dividends.index[i - 1]
+
+        current = annual_dividends.iloc[i]
+        previous = annual_dividends.iloc[i - 1]
+
+        if previous == 0:
+            pct_change = float('inf')
+        else:
+            pct_change = ((current - previous) / previous) * 100
+
+        print(f"Percentage change for {year} (vs {prev_year}): {pct_change:.2f}%")
+
+    print("\n")
 
 
 while i < (len(ticker_list)):
     company = yf.Ticker(ticker_list[i])
     fundamentalinfo = company.info
-    DIVinfo(company)
-
-    EPSinfo(company)
+    print("Choose what you need")
+    print("1 - have company info")
+    print("2 - calculate a price target and intrinsic value")
+    action = input(": ")
+    if action == "1":
+        DIVinfo(company)
+        EPSinfo(company)
 
     EPS = fundamentalinfo['epsTrailingTwelveMonths']
     Price = fundamentalinfo['currentPrice']
@@ -115,6 +135,7 @@ while i < (len(ticker_list)):
     DperShare = Price*Dyield_calc
     PEratio = Price/EPS
 
-    Dividend_growth_rate_calc(DperShare, i)
-    Grahamformula(EPS, GrowthRate, AAAbondyield, i)
+    if action == "2":
+        Dividend_growth_rate_calc(DperShare, i)
+        Grahamformula(EPS, GrowthRate, AAAbondyield, i)
     i += 1

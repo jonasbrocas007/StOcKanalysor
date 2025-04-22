@@ -3,13 +3,13 @@ import pandas_datareader.data as web
 import datetime
 import pandas as pd
 import math
-ticker_list = ['PG']
-Dgrowthratelist = [0.07]
-Requiredreturnlist = [0.1]
-DDMappropriate = [True]
+ticker_list = ['AMZN']
+Dgrowthratelist = [0.05]
+Requiredreturnlist = [0.09]
+DDMappropriate = [False]
 Grahamappropriate = [True]
 
-GrowthRate = [2]#graham formula uses % not decimal
+GrowthRate = [20]#graham formula uses % not decimal
 
 i = 0
 
@@ -134,6 +134,15 @@ while i < (len(ticker_list)):
     Dyield_calc = Dyield/100
     DperShare = Price*Dyield_calc
     PEratio = Price/EPS
+    
+    print(f"Most current price is {Price}")
+    if action == "1":
+        print(f"Most current price is {Price}")
+        print(f"Earnings per share is {EPS}")
+        print(f"The PE ratio is {PEratio}")
+        print(f"The PEG is {PEG}")
+        print(f"The Dividend yield is {Dyield}")
+
 
     if action == "2":
         Dividend_growth_rate_calc(DperShare, i)

@@ -3,13 +3,13 @@ import pandas_datareader.data as web
 import datetime
 import pandas as pd
 import math
-ticker_list = ['AMZN']
+ticker_list = ['BCP.LS']
 Dgrowthratelist = [0.05]
 Requiredreturnlist = [0.09]
 DDMappropriate = [False]
 Grahamappropriate = [True]
 
-GrowthRate = [20]#graham formula uses % not decimal
+GrowthRate = [40]#graham formula uses % not decimal
 
 i = 0
 
@@ -108,7 +108,6 @@ def DIVinfo(company):
 
     print("\n")
 
-
 while i < (len(ticker_list)):
     company = yf.Ticker(ticker_list[i])
     fundamentalinfo = company.info
@@ -116,6 +115,10 @@ while i < (len(ticker_list)):
     print("1 - have company info")
     print("2 - calculate a price target and intrinsic value")
     action = input(": ")
+
+    if action == "quit":
+        quit()
+
     if action == "1":
         DIVinfo(company)
         EPSinfo(company)

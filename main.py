@@ -3,13 +3,6 @@ import pandas_datareader.data as web
 import datetime
 import pandas as pd
 import math
-ticker_list = ['BCP.LS']
-Dgrowthratelist = [0.05]
-Requiredreturnlist = [0.09]
-DDMappropriate = [False]
-Grahamappropriate = [True]
-
-GrowthRate = [40]#graham formula uses % not decimal
 
 i = 0
 
@@ -19,29 +12,19 @@ end = datetime.datetime.today()
 aaa_yield = web.DataReader('DAAA', 'fred', start, end)
 AAAbondyield = aaa_yield.dropna().iloc[-1, 0]
 
-def Dividend_growth_rate_calc(DperShare, i):
-    while i< (len(Dgrowthratelist)):
-        if DDMappropriate[i] == True:
-            Dgrowthrate = Dgrowthratelist[i]
-            Requiredreturn = Requiredreturnlist[i]
+def Dividend_growth_rate_calc(DperShare, i, ticker, Dgrowthrate, Requiredreturn):
+    if (Dgrowthrate == Requiredreturn):
+        return
+    stockPrice = (DperShare + (DperShare * Dgrowthrate)) / (Requiredreturn - Dgrowthrate)
+    print(f"DDM says buy {ticker} at {stockPrice} or bellow to get expected return")
+    return stockPrice
 
-            if (Dgrowthrate == Requiredreturn):
-                return
-            stockPrice = (DperShare + (DperShare * Dgrowthrate)) / (Requiredreturn - Dgrowthrate)
-            print(f"DDM says buy {ticker_list[i]} at {stockPrice} or bellow to get expected return")
-            return stockPrice
-        else:
-            return
 
-def Grahamformula(EPS, growth, AAAbondyield, i):
-    while i < len(ticker_list):
-        if Grahamappropriate[i] == True:
-            stockPrice = (EPS * (8.5 + (2 * growth[i])) * 4.4) / AAAbondyield
-            print(f"Graham says: price target of {stockPrice} for {ticker_list[i]}")
-            return stockPrice
-        else:
-            return
-# WHAT TO DO::: MAKE EPS INFO AND DIVINFO COUNT YEAR ON YEAR CHANGES NOT TOTAL CHANGES!
+def Grahamformula(EPS, growth, AAAbondyield, i, ticker):
+    stockPrice = (EPS * (8.5 + (2 * growth)) * 4.4) / AAAbondyield
+    print(f"Graham says: price target of {stockPrice} for {ticker}")
+    return stockPrice
+
 def EPSinfo(company):
     annual = company.income_stmt
     HEPS = annual.loc['Basic EPS'].dropna()
@@ -108,20 +91,9 @@ def DIVinfo(company):
 
     print("\n")
 
-while i < (len(ticker_list)):
-    company = yf.Ticker(ticker_list[i])
+def common(company):
+    company = yf.Ticker(company)
     fundamentalinfo = company.info
-    print("Choose what you need")
-    print("1 - have company info")
-    print("2 - calculate a price target and intrinsic value")
-    action = input(": ")
-
-    if action == "quit":
-        quit()
-
-    if action == "1":
-        DIVinfo(company)
-        EPSinfo(company)
 
     EPS = fundamentalinfo['epsTrailingTwelveMonths']
     Price = fundamentalinfo['currentPrice']
@@ -137,17 +109,62 @@ while i < (len(ticker_list)):
     Dyield_calc = Dyield/100
     DperShare = Price*Dyield_calc
     PEratio = Price/EPS
+
+    return {
+        "Price": Price,
+        "EPS": EPS,
+        "PEratio": PEratio,
+        "PEG": PEG,
+        "Dyield": Dyield,
+        "DperShare": DperShare
     
-    print(f"Most current price is {Price}")
-    if action == "1":
-        print(f"Most current price is {Price}")
-        print(f"Earnings per share is {EPS}")
-        print(f"The PE ratio is {PEratio}")
-        print(f"The PEG is {PEG}")
-        print(f"The Dividend yield is {Dyield}")
+    }
 
 
-    if action == "2":
-        Dividend_growth_rate_calc(DperShare, i)
-        Grahamformula(EPS, GrowthRate, AAAbondyield, i)
+while True:
+    action = input(": ")
+
+    if action == "quit":
+        quit()
+
+    if action.startswith("analyse"):
+        action = action.replace("analyse ", "")
+        pricedata = common(action)
+
+        DIVinfo(yf.Ticker(action))
+        EPSinfo(yf.Ticker(action))
+
+        print(f"Most current price is {pricedata['Price']}")
+        print(f"Earnings per share is {pricedata['EPS']}")
+        print(f"The PE ratio is {pricedata['PEratio']}")
+        print(f"The PEG is {pricedata['PEG']}")
+        print(f"The Dividend yield is {pricedata['Dyield']}")
+
+    elif action.startswith("graham "):
+        action = action.replace("graham ", "")
+        ticker = action.split(' ')
+
+        data = common(str(ticker[0]))
+        GrowthRate = float(ticker[1])
+
+        Grahamformula(data['EPS'], GrowthRate, AAAbondyield, i, action)
+
+    elif action.startswith("ddm "):
+        action = action.replace("ddm ", "")
+        ticker = action.split(' ')
+
+        data = common(str(ticker[0]))
+
+        Dividend_growth_rate_calc(data["DperShare"], i, ticker[0], float(ticker[1]), float(ticker[2]))
+
+    elif action == "help":
+        print("type analyse ticker to get analyses")
+        print("type graham ticker to get the graham valuation")
+        print("type ddm ticker to get the ddm valuation")
+
+        print("example: analyse BCP.LS")
+        print("example: graham BCP.LS 40 (40 percent eps growth)")
+        print("example: ddm BCP.LS 0.01 0.1 (0.01 dividend growth and 0.01 expect return)")
+
+
     i += 1
